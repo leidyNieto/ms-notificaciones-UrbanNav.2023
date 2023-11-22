@@ -201,52 +201,32 @@ def send_boton_panico():
         ruta = data.get('ruta', '')
         datos_conductor = data.get('datos_conductor', '')
         datos_usuario = data.get('datos_usuario', '')
-        correo_ayuda = data.get('correo_ayuda', '') 
+        numero_telefono = data.get('numero_telefono', '')  # Agregué este campo para el número de teléfono de ayuda
 
-        if datos_conductor and datos_usuario and ruta and correo_ayuda:
-            SENDER = "Andres <andresrios774@gmail.com>" 
+        if datos_conductor and datos_usuario and ruta and numero_telefono:
             AWS_REGION = "us-east-2"
-            SUBJECT = f"Alguien preciono el boton de panaico"
-            BODY_TEXT = f"Factura de viaje de "
-            BODY_HTML = f"""<html>
-                <head>
-                    <style>
-                        h1 {{
-                            text-align: center;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    <h1>Alguien necesita tu ayuda</h1>
-                    <p>el usuario ${datos_usuario} esta teniendo problemas en las ruta ${ruta} que esta a cargo del conductor ${datos_conductor}</p>
-                </body>
-            </html>"""
-
-            CHARSET = "UTF-8"
+            SUBJECT = "Alguien presionó el botón de pánico"
+            MESSAGE = f"El usuario {datos_usuario} está teniendo problemas en la ruta {ruta} que está a cargo del conductor {datos_conductor}"
 
             client = boto3.client(
-                "ses",
+                "sns",
                 aws_access_key_id=config("AWS_API_KEY"),
                 aws_secret_access_key=config("AWS_SECRET_KEY"),
                 region_name=AWS_REGION
             )
-            response = client.send_email(
-                Destination={'ToAddresses': [correo_ayuda]},
-                Message={
-                    'Body': {
-                        'Html': {'Charset': CHARSET, 'Data': BODY_HTML},
-                        'Text': {'Charset': CHARSET, 'Data': BODY_TEXT},
-                    },
-                    'Subject': {'Charset': CHARSET, 'Data': SUBJECT},
-                },
-                Source=SENDER,
+
+            response = client.publish(
+                PhoneNumber=numero_telefono,
+                Message=MESSAGE,
+                Subject=SUBJECT
             )
-            return f"<p>Correo electrónico enviado a {correo_ayuda}! ID del mensaje: {response['MessageId']}</p>"
+
+            return f"<p>Mensaje de texto enviado a {numero_telefono}! ID del mensaje: {response['MessageId']}</p>"
         else:
             return "<p>Parámetros faltantes en la solicitud.</p>", 400
     except Exception as e:
         print(f'Error: {str(e)}')
         return "<p>Error en el servidor.</p>", 500
-
+    
 if __name__ == "__main__":
     app.run()
