@@ -86,5 +86,53 @@ def send_email_ses():
         print(f'Error: {str(e)}')
         return "<p>Error en el servidor.</p>", 500
 
+@app.route("/pqrs", methods=['POST'])
+def send_pqrs_email():
+    try:
+        data = request.get_json()
+        print(f'Solicitud recibida: {data}')  # Imprimir la solicitud recibida
+        tipo = data.get('tipo', '')
+        mensaje = data.get('mensaje', '')
+        correo_destinatario = "andresrios774@gmail.com" 
+
+        if tipo and mensaje:
+            SENDER = "Andres <andresrios774@gmail.com>" 
+            AWS_REGION = "us-east-2"
+            SUBJECT = f"PQRS - {tipo}"
+            BODY_TEXT = f"Tipo de PQRS: {tipo}\n\n{mensaje}"
+            BODY_HTML = f"""<html>
+                <head></head>
+                <body>
+                <h1>PQRS - {tipo}</h1>
+                <p>{mensaje}</p>
+                </body>
+                </html>"""
+
+            CHARSET = "UTF-8"
+
+            client = boto3.client(
+                "ses",
+                aws_access_key_id=config("AWS_API_KEY"),
+                aws_secret_access_key=config("AWS_SECRET_KEY"),
+                region_name=AWS_REGION
+            )
+            response = client.send_email(
+                Destination={'ToAddresses': [correo_destinatario]},
+                Message={
+                    'Body': {
+                        'Html': {'Charset': CHARSET, 'Data': BODY_HTML},
+                        'Text': {'Charset': CHARSET, 'Data': BODY_TEXT},
+                    },
+                    'Subject': {'Charset': CHARSET, 'Data': SUBJECT},
+                },
+                Source=SENDER,
+            )
+            return f"<p>Correo electrónico enviado a {correo_destinatario}! ID del mensaje: {response['MessageId']}</p>"
+        else:
+            return "<p>Parámetros faltantes en la solicitud.</p>", 400
+    except Exception as e:
+        print(f'Error: {str(e)}')
+        return "<p>Error en el servidor.</p>", 500
+    
 if __name__ == "__main__":
     app.run()
